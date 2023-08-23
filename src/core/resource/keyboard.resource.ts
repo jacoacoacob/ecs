@@ -34,7 +34,7 @@ function whichDirection(dirNeg: Timestamp, dirPos: Timestamp, velocity: number) 
     return 0;
 }
     
-function keyboard() {
+function keyboardResource() {
     return createResource({
         name: "keyboard",
         setup() {
@@ -110,7 +110,7 @@ function keyboard() {
     });
 }
 
-type Keyboard = ReturnType<typeof keyboard>;
+type KeyboardResource = ReturnType<typeof keyboardResource>;
 
-export { keyboard, isKey, whichDirection };
-export type { Keyboard };
+export { keyboardResource, isKey, whichDirection };
+export type { KeyboardResource };

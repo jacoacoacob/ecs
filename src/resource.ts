@@ -1,7 +1,7 @@
 
-interface ResourceData {
-    update: () => void;
-}
+type ResourceData =  {
+    update?: () => void;
+} & any;
 
 interface Resource<Name extends string, Data extends ResourceData> {
     name: Name;

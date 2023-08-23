@@ -1,3 +1,5 @@
+export * as utils from "./utils/index";
+export * as core from "./core/index";
 
 export { App } from "./app";
 export { createEntity } from "./entity";
