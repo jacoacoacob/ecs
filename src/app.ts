@@ -5,49 +5,41 @@ import type { Resource, ResourceMap } from "./resource";
 import type { Plugin } from "./plugin";
 import { System } from "./system";
 
-interface AppParams<
-    AppEntity extends Entity<string, Component<string, any>>,
-    AppResource extends Resource<string, any>
-> {
-    entities: (() => AppEntity)[];
-    resources: (() => AppResource)[];
-    plugins?: Plugin<App<AppEntity, AppResource>>[];
-}
-
 class App<
     AppEntity extends Entity<string, Component<string, any>>,
     AppResource extends Resource<string, any>
 > {
     private _loop = animationLoop();
+    private _plugins: Plugin<this>[] = [];
     private _startupSystems: (() => void)[] = [];
     private _systems: (() => void)[] = [];
     private _entityMap = {} as EntityMap<AppEntity>;
     private _entityFactoryMap = {} as EntityFactoryMap<AppEntity>;
     private _resourceMap = {} as ResourceMap<AppResource>;
 
-    constructor(params: AppParams<AppEntity, AppResource>) {
-        const { entities, resources, plugins } = params;
+    private _isInitialized = false;
 
-        this._entityFactoryMap = entities.reduce(
-            (accum: EntityFactoryMap<AppEntity>, factory) => {
-                const { kind } = factory();
-                return { ...accum, [kind]: factory };
-            },
-            {} as EntityFactoryMap<AppEntity>
-        );
-        
-        this._resourceMap = resources.reduce(
-            (accum: ResourceMap<AppResource>, resource) => {
-                const { name, data } = resource();
-                return { ...accum, [name]: data };
-            },
-            {} as ResourceMap<AppResource>
-        );
-
-        if (plugins) {
-            plugins.forEach((plugin) => {
+    private _init() {
+        if (!this._isInitialized) {
+            this._plugins.forEach((plugin) => {
                 plugin(this);
             });
+            this._isInitialized = true;
+        }
+        while (this._startupSystems.length) {
+            const system = this._startupSystems.shift()!;
+            system();
+        }
+    }
+
+    private get _systemParams() {
+        return {
+            spawn: this.spawn,
+            unspawn: this.unspawn,
+            query: this.query,
+            queryFirst: this.queryFirst,
+            getEntityById: this.getEntityById,
+            useResource: this.useResource,
         }
     }
 
@@ -92,17 +84,6 @@ class App<
         return this._resourceMap[name];
     }
 
-    private get _systemParams() {
-        return {
-            spawn: this.spawn,
-            unspawn: this.unspawn,
-            query: this.query,
-            queryFirst: this.queryFirst,
-            getEntityById: this.getEntityById,
-            useResource: this.useResource,
-        }
-    }
-
     addStartupSystem(system: System<this>) {
         this._startupSystems.push(() => system(this._systemParams));
     }
@@ -111,12 +92,36 @@ class App<
         this._systems.push(() => system(this._systemParams));
     }
 
+    addResource(factory: () => AppResource) {
+        const { name, data } = factory();
+        this._resourceMap[name as AppResource["name"]] = data;
+    }
+
+    addEntityFactory(factory: () => AppEntity) {
+        const { kind } = factory();
+        (this._entityFactoryMap as any)[kind] = factory;
+    }
+
+    use(plugin: Plugin<this>) {
+        this._plugins.push(plugin);
+    }
+
     run() {
-        while (this._startupSystems.length) {
-            const system = this._startupSystems.shift()!;
-            system();
-        }
-        this._loop.run(this._systems);
+        this._init();
+
+        const resourceMapKeys = Object.keys(this._resourceMap);
+
+        this._loop.run([
+            ...this._systems,
+            () => {
+                for (let i = 0; i < resourceMapKeys.length; i++) {
+                    const resource = (this._resourceMap as any)[resourceMapKeys[i]];
+                    if (typeof resource.update === "function") {
+                        resource.update();
+                    }
+                }
+            },
+        ]);
     }
 
     stop() {

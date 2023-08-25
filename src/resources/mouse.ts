@@ -1,4 +1,4 @@
-import { createResource } from "../../resource";
+import { createResource } from "../resource";
 
 type MouseState = "just_pressed" | "just_released" | "released" | "pressed";
 
@@ -10,8 +10,8 @@ function mouseResource() {
             let _bufferState: MouseState = "released";
 
             const position = {
-                canvasX: 0,
-                canvasY: 0,
+                canvasX: -1,
+                canvasY: -1,
             };
 
             return {

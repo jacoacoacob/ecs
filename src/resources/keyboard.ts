@@ -1,4 +1,4 @@
-import { createResource } from "../../resource";
+import { createResource } from "../resource";
 
 const KEYS = [
     " ",
