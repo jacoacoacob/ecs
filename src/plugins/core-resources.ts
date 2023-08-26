@@ -1,28 +1,31 @@
 
 import { App } from "../app";
 
+import { assetsResource, AssetsResource } from "../resources/assets";
 import { canvasResource, type CanvasResource } from "../resources/canvas";
 import { keyboardResource, isKey, type KeyboardResource } from "../resources/keyboard";
 import { mouseResource, type MouseResource } from "../resources/mouse";
 import { windowResource, type WindowResource } from "../resources/window";
 
 type CoreResources =
+    AssetsResource |
     CanvasResource |
     KeyboardResource |
     MouseResource |
     WindowResource;
 
-type RenderingContext = () => {
-    width: number;
-    height: number;
+
+interface CoreResourcesParams {
+    renderingContext: () => { width: number; height: number };
     selector: string;
-};
+    assetsPath: string;
+}
 
-function coreResources(renderingContext: RenderingContext) {
+function coreResources(params: CoreResourcesParams) {
+    const { renderingContext, selector, assetsPath } = params;
     return (app: App<any, CoreResources>) => {
-        const { selector } = renderingContext();
-
         app.addResource(canvasResource(selector));
+        app.addResource(assetsResource(assetsPath));
         app.addResource(keyboardResource);
         app.addResource(mouseResource);
         app.addResource(windowResource);

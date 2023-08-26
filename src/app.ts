@@ -11,7 +11,7 @@ class App<
 > {
     private _loop = animationLoop();
     private _plugins: Plugin<this>[] = [];
-    private _startupSystems: (() => void)[] = [];
+    private _startupSystems: (() => Promise<void>)[] = [];
     private _systems: (() => void)[] = [];
     private _entityMap = {} as EntityMap<AppEntity>;
     private _entityFactoryMap = {} as EntityFactoryMap<AppEntity>;
@@ -19,7 +19,7 @@ class App<
 
     private _isInitialized = false;
 
-    private _init() {
+    private async _init() {
         if (!this._isInitialized) {
             this._plugins.forEach((plugin) => {
                 plugin(this);
@@ -28,7 +28,7 @@ class App<
         }
         while (this._startupSystems.length) {
             const system = this._startupSystems.shift()!;
-            system();
+            await system();
         }
     }
 
@@ -85,7 +85,7 @@ class App<
     }
 
     addStartupSystem(system: System<this>) {
-        this._startupSystems.push(() => system(this._systemParams));
+        this._startupSystems.push(async () => system(this._systemParams));
     }
 
     addSystem(system: System<this>) {
@@ -106,8 +106,8 @@ class App<
         this._plugins.push(plugin);
     }
 
-    run() {
-        this._init();
+    async run() {
+        await this._init();
 
         const resourceMapKeys = Object.keys(this._resourceMap);
 
